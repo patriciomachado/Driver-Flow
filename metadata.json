@@ -1,0 +1,7 @@
+{
+  "name": "DriverFlow - Financeiro para Motoristas",
+  "description": "Gestor financeiro rápido e dark-mode para motoristas de aplicativo.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
