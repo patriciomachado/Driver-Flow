@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Fuel, Coins, ChevronRight, Zap, Loader2, MapPin } from 'lucide-react';
+import { TrendingUp, Fuel, Coins, ChevronRight, Zap, Loader2, MapPin, Sparkles, BrainCircuit } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 
@@ -31,37 +31,39 @@ const Dashboard: React.FC<{ user: any }> = ({ user }) => {
 
   const fetchData = async () => {
     setLoading(true);
-    const today = new Date().toISOString().split('T')[0];
-    
-    // Fetch stats for today
-    const { data: todayData, error: statsError } = await supabase
-      .from('daily_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .gte('logged_at', today);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { data: todayData, error: statsError } = await supabase
+        .from('daily_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('logged_at', today);
 
-    if (!statsError && todayData) {
-      const summary = todayData.reduce((acc, curr) => ({
-        earnings: acc.earnings + (curr.earnings || 0),
-        gas: acc.gas + (curr.fuel_cost || 0),
-        km: acc.km + (curr.km_driven || 0)
-      }), { earnings: 0, gas: 0, km: 0 });
-      setStats(summary);
+      if (!statsError && todayData) {
+        const summary = todayData.reduce((acc, curr) => ({
+          earnings: acc.earnings + (curr.earnings || 0),
+          gas: acc.gas + (curr.fuel_cost || 0),
+          km: acc.km + (curr.km_driven || 0)
+        }), { earnings: 0, gas: 0, km: 0 });
+        setStats(summary);
+      }
+
+      const { data: recent, error: recentError } = await supabase
+        .from('daily_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('logged_at', { ascending: false })
+        .limit(3);
+
+      if (!recentError && recent) {
+        setRecentLogs(recent);
+      }
+    } catch (e) {
+      console.error("Erro ao buscar dados:", e);
+    } finally {
+      setLoading(false);
     }
-
-    // Fetch 3 most recent logs
-    const { data: recent, error: recentError } = await supabase
-      .from('daily_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('logged_at', { ascending: false })
-      .limit(3);
-
-    if (!recentError && recent) {
-      setRecentLogs(recent);
-    }
-
-    setLoading(false);
   };
 
   const profit = stats.earnings - stats.gas;
@@ -97,12 +99,19 @@ const Dashboard: React.FC<{ user: any }> = ({ user }) => {
           <h1 className="text-5xl font-black text-dark-bg tracking-tighter">
             R$ {profit.toFixed(2)}
           </h1>
-          <div className="flex items-center gap-2 mt-4 bg-dark-bg/10 backdrop-blur-md w-fit px-4 py-2 rounded-2xl">
-            <Zap size={14} className="text-dark-bg" />
-            <span className="text-dark-bg font-bold text-xs">Seu desempenho está estável</span>
-          </div>
         </div>
         <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full translate-x-20 -translate-y-20 blur-3xl transition-transform group-hover:scale-125"></div>
+      </div>
+
+      {/* AI Smart Insight (Brief) */}
+      <div className="bg-neon-purple/10 border border-neon-purple/20 p-5 rounded-[2rem] mb-8 flex items-center gap-4">
+        <div className="w-12 h-12 bg-neon-purple/20 rounded-2xl flex items-center justify-center text-neon-purple shrink-0">
+          <BrainCircuit size={24} />
+        </div>
+        <div className="flex-1">
+          <h4 className="text-[10px] font-black text-neon-purple uppercase tracking-widest">IA Insight</h4>
+          <p className="text-xs text-slate-300 font-medium">Seus ganhos nas manhãs de terça-feira são 15% superiores. Continue assim!</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
@@ -147,13 +156,12 @@ const Dashboard: React.FC<{ user: any }> = ({ user }) => {
           {recentLogs.length === 0 ? (
             <div className="text-center py-10 border border-dashed border-slate-800 rounded-[2.5rem]">
                <p className="text-slate-600 text-xs font-bold uppercase tracking-widest">Nenhum registro ainda</p>
-               <p className="text-slate-700 text-[10px] mt-1">Toque no + para começar</p>
             </div>
           ) : (
             recentLogs.map((log) => (
               <div key={log.id} className="bg-slate-900/40 p-5 rounded-[2rem] border border-slate-800/30 flex items-center gap-4 active:scale-95 transition-all">
                 <div className="w-12 h-12 rounded-2xl bg-slate-800/80 flex items-center justify-center border border-slate-700/50 text-slate-400">
-                  <span className="font-black text-xs uppercase">{log.app_name.substring(0,2)}</span>
+                  <span className="font-black text-xs uppercase">{log.app_name?.substring(0,2) || '??'}</span>
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-slate-100 text-sm">{log.app_name}</h4>
